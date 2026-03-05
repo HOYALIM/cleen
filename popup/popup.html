@@ -23,24 +23,15 @@
       <button class="settings-close" id="settingsClose">&times;</button>
     </div>
     <div class="settings-content">
-      <div class="settings-section">
-        <div class="settings-row">
-          <span class="settings-label">Auto-suspend threshold</span>
-          <select class="settings-select" id="thresholdSelect">
-            <option value="600000">10 min</option>
-            <option value="1800000">30 min</option>
-            <option value="3600000">1 hour</option>
-            <option value="7200000">2 hours</option>
-            <option value="0">Disabled</option>
-          </select>
-        </div>
-      </div>
-      <div class="settings-section">
-        <div class="settings-row">
-          <span class="settings-label">Keyboard shortcut</span>
-          <span class="settings-shortcut" id="shortcutDisplay">Click to set</span>
-        </div>
-        <div class="settings-hint">Click and press keys to set shortcut</div>
+      <div class="settings-row">
+        <span class="settings-label">Suspend after</span>
+        <select class="settings-select" id="thresholdSelect">
+          <option value="600000">10 min</option>
+          <option value="1800000" selected>30 min</option>
+          <option value="3600000">1 hour</option>
+          <option value="7200000">2 hours</option>
+          <option value="0">Never</option>
+        </select>
       </div>
     </div>
   </div>
@@ -64,7 +55,7 @@
     </div>
 
     <div class="stats-row">
-      <div class="card card--stat">
+      <div class="card card--stat" id="statActive" data-filter="active">
         <div class="stat-icon stat-icon--active">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <rect x="2" y="3" width="12" height="9" rx="1" stroke="currentColor" stroke-width="1.5"/>
@@ -76,7 +67,7 @@
           <span class="stat-label">Active</span>
         </div>
       </div>
-      <div class="card card--stat">
+      <div class="card card--stat" id="statSuspended" data-filter="discarded">
         <div class="stat-icon stat-icon--suspended">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <rect x="3" y="7" width="10" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
@@ -88,7 +79,7 @@
           <span class="stat-label">Suspended</span>
         </div>
       </div>
-      <div class="card card--stat">
+      <div class="card card--stat" id="statHeavy" data-filter="heavy">
         <div class="stat-icon stat-icon--heavy">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M8 2L10 6L14 6.5L11 10L12 14L8 11.5L4 14L5 10L2 6.5L6 6L8 2Z" fill="currentColor"/>
@@ -103,14 +94,7 @@
 
     <div class="card card--tabs">
       <div class="card-header">
-        <div class="card-header-left">
-          <span class="card-title">Tabs</span>
-          <div class="filter-tabs">
-            <button class="filter-btn filter-btn--active" data-filter="all">All</button>
-            <button class="filter-btn" data-filter="active">☀️ Active</button>
-            <button class="filter-btn" data-filter="discarded">🌙 Suspended</button>
-          </div>
-        </div>
+        <span class="card-title">Tabs</span>
         <div class="tab-actions">
           <button class="tab-action-btn" id="suspendLeftBtn">←L</button>
           <button class="tab-action-btn" id="suspendRightBtn">R→</button>

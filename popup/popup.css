@@ -31,11 +31,87 @@ body {
   padding: 12px 16px;
   background: var(--card-bg);
   border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .header-title {
   font-size: 16px;
   font-weight: 600;
+}
+
+.settings-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--text-secondary);
+}
+
+.settings-btn:hover {
+  color: var(--primary);
+}
+
+.settings-panel {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-panel--open {
+  display: flex;
+}
+
+.settings-panel .settings-header {
+  background: var(--card-bg);
+  padding: 16px;
+  border-radius: 14px 14px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings-panel .settings-title {
+  font-weight: 600;
+}
+
+.settings-panel .settings-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.settings-panel .settings-content {
+  background: var(--card-bg);
+  padding: 16px;
+  border-radius: 0 0 14px 14px;
+}
+
+.settings-panel .settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings-panel .settings-label {
+  font-size: 13px;
+}
+
+.settings-panel .settings-select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 13px;
 }
 
 .dashboard {
@@ -133,6 +209,17 @@ body {
   align-items: center;
   gap: 8px;
   padding: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.card--stat:hover {
+  background: var(--primary-light);
+}
+
+.card--stat.active-filter {
+  background: var(--primary-light);
+  outline: 2px solid var(--primary);
 }
 
 .stat-icon {

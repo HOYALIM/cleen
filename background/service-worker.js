@@ -128,7 +128,10 @@ async function persistSession() {
 let memCache = { map: new Map(), totalMB: 0, time: 0, isEstimate: false };
 
 async function pollProcesses() {
-  if (!chrome.processes?.getProcessInfo) return null;
+  if (!chrome.processes?.getProcessInfo) {
+    console.log('[Cleen] processes API not available');
+    return null;
+  }
   try {
     const info = await Promise.race([
       new Promise((resolve, reject) => {
@@ -140,19 +143,34 @@ async function pollProcesses() {
       new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
     ]);
 
+    if (!info) {
+      console.log('[Cleen] No process info returned');
+      return null;
+    }
+
     const map = new Map();
     let total = 0;
-    for (const proc of Object.values(info)) {
+    console.log('[Cleen] Process count:', Object.keys(info).length);
+    
+    for (const [procId, proc] of Object.entries(info)) {
       const mb = Math.round((proc.privateMemory || 0) / 1_048_576);
       total += mb;
+      console.log('[Cleen] Process', procId, 'type:', proc.type, 'memory:', mb, 'MB');
       if (proc.tasks) {
         for (const t of proc.tasks) {
-          if (t.tabId > 0) map.set(t.tabId, (map.get(t.tabId) || 0) + mb);
+          if (t.tabId > 0) {
+            const prev = map.get(t.tabId) || 0;
+            map.set(t.tabId, prev + mb);
+          }
         }
       }
     }
+    console.log('[Cleen] Total memory:', total, 'MB');
     return { map, totalMB: total, isEstimate: false };
-  } catch { return null; }
+  } catch (err) {
+    console.log('[Cleen] pollProcesses error:', err.message);
+    return null;
+  }
 }
 
 async function pollFallback() {

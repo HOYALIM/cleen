@@ -69,6 +69,13 @@ function createTabItem(tab) {
   
   div.appendChild(info);
 
+  if (tab.memoryMB > 0 && !tab.discarded) {
+    const mem = document.createElement('span');
+    mem.className = 'tab-memory';
+    mem.textContent = tab.memoryMB + ' MB';
+    div.appendChild(mem);
+  }
+
   const btn = document.createElement('button');
   btn.className = 'tab-suspend-btn';
   if (tab.discarded) {
@@ -134,10 +141,7 @@ function renderAll(status) {
     const suspendedTabs = tabs.filter(t => t.discarded);
     const heavyTabs = activeTabs.filter(t => t.isHeavy || t.memoryMB > 150);
     
-    if (isEstimate || totalMB === 0) {
-      memoryValue.textContent = activeTabs.length;
-      memoryUnit.textContent = 'tabs';
-    } else {
+    if (totalMB > 0) {
       if (totalMB >= 1000) {
         memoryValue.textContent = (totalMB / 1000).toFixed(1);
         memoryUnit.textContent = 'GB';
@@ -145,8 +149,11 @@ function renderAll(status) {
         memoryValue.textContent = totalMB;
         memoryUnit.textContent = 'MB';
       }
+    } else {
+      memoryValue.textContent = '0';
+      memoryUnit.textContent = 'MB';
     }
-    memoryDetail.textContent = isEstimate ? `~${totalMB} MB (est)` : `${totalMB} MB`;
+    memoryDetail.textContent = isEstimate ? `${activeTabs.length} tabs (est)` : `${totalMB} MB`;
     updateMemoryRing(totalMB);
     
     activeValue.textContent = activeTabs.length;
@@ -245,11 +252,11 @@ async function init() {
 }
 
 function setupFilterButtons() {
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-btn--active'));
-      btn.classList.add('filter-btn--active');
-      currentFilter = btn.dataset.filter;
+  document.querySelectorAll('.card--stat').forEach(card => {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => {
+      const filter = card.dataset.filter;
+      currentFilter = currentFilter === filter ? 'all' : filter;
       if (currentTabs.length > 0) {
         renderAll({ success: true, totalMB: 0, isEstimate: true, tabs: currentTabs });
       }
@@ -262,7 +269,6 @@ function setupSettingsPanel() {
   const settingsPanel = $('settingsPanel');
   const settingsClose = $('settingsClose');
   const thresholdSelect = $('thresholdSelect');
-  const shortcutDisplay = $('shortcutDisplay');
 
   settingsBtn?.addEventListener('click', () => {
     settingsPanel.classList.add('settings-panel--open');
@@ -280,36 +286,6 @@ function setupSettingsPanel() {
   chrome.storage.local.get('suspendThreshold', (d) => {
     if (d?.suspendThreshold !== undefined) {
       thresholdSelect.value = d.suspendThreshold;
-    }
-  });
-
-  let isRecordingShortcut = false;
-  shortcutDisplay?.addEventListener('click', () => {
-    isRecordingShortcut = true;
-    shortcutDisplay.textContent = 'Press keys...';
-    shortcutDisplay.classList.add('settings-shortcut--recording');
-  });
-
-  document.addEventListener('keydown', async (e) => {
-    if (!isRecordingShortcut) return;
-    
-    e.preventDefault();
-    const keys = [];
-    if (e.ctrlKey) keys.push('Ctrl');
-    if (e.shiftKey) keys.push('Shift');
-    if (e.altKey) keys.push('Alt');
-    if (e.metaKey) keys.push('Command');
-    if (e.key !== 'Control' && e.key !== 'Shift' && e.key !== 'Alt' && e.key !== 'Meta') {
-      keys.push(e.key.toUpperCase());
-    }
-    
-    if (keys.length > 1) {
-      const shortcut = keys.join('+');
-      shortcutDisplay.textContent = shortcut;
-      shortcutDisplay.classList.remove('settings-shortcut--recording');
-      isRecordingShortcut = false;
-      
-      await chrome.storage.local.set({ customShortcut: shortcut });
     }
   });
 }
