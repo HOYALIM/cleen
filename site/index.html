@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Cleen - Keep Chrome's memory under control. Automatically suspend inactive tabs and save RAM." />
+    <title>Cleen | Chrome Memory Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="noise"></div>
+    <div class="world-logo" id="worldLogo" aria-hidden="true">
+      <img src="assets/logo.png" alt="" />
+    </div>
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
+    <header class="topbar">
+      <a class="brand" href="#">
+        <img src="assets/logo.png" alt="Cleen logo" />
+        <span>Cleen</span>
+      </a>
+      <a class="ghost-btn" href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="kicker">Chrome Extension</p>
+          <h1>Free your RAM.<br />Suspend tabs.<br />Breathe easy.</h1>
+          <p class="lead">
+            Cleen automatically suspends inactive tabs to free up memory. Track usage, detect heavy sites, and keep Chrome running smooth.
+          </p>
+          <div class="cta-row">
+            <a class="primary-btn" href="https://chromewebstore.google.com/" target="_blank" rel="noreferrer"
+              >Chrome Web Store</a
+            >
+            <a
+              class="ghost-btn"
+              href="#"
+              target="_blank"
+              rel="noreferrer"
+              >Privacy Policy</a
+            >
+          </div>
+        </div>
+      </section>
+
+      <section class="cards">
+        <article>
+          <h2>Auto-Suspend</h2>
+          <p>Tabs inactive for 30+ minutes are automatically discarded. Wake them up with a single click.</p>
+        </article>
+        <article>
+          <h2>Memory Dashboard</h2>
+          <p>See exactly how much RAM Chrome is using. Visual ring shows usage at a glance.</p>
+        </article>
+        <article>
+          <h2>Heavy Site Detection</h2>
+          <p>Identifies memory-hungry sites like YouTube, Claude, and ChatGPT. Prioritize what matters.</p>
+        </article>
+      </section>
+
+      <section class="mini-spec">
+        <p><strong>Stack:</strong> Manifest V3, Chrome Processes API, local storage.</p>
+        <p><strong>Privacy:</strong> All data stays on your device. No analytics, no tracking.</p>
+      </section>
+    </main>
+
+    <footer>
+      <span>© Cleen</span>
+      <a href="mailto:hello@cleen.app">hello@cleen.app</a>
+    </footer>
+    <script src="main.js"></script>
+  </body>
+</html>

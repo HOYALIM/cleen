@@ -1,25 +1,49 @@
-/**
- * Cleen Popup — Dashboard rendering & controls
- * Renders cached data instantly, then refreshes from service worker.
- */
 'use strict';
 
 const $ = (id) => document.getElementById(id);
-const memoryBarFill = $('memoryBarFill');
+
+const memoryRing = $('memoryRing');
 const memoryValue = $('memoryValue');
 const memoryUnit = $('memoryUnit');
-const estimateBanner = $('estimateBanner');
+const memoryDetail = $('memoryDetail');
+const activeValue = $('activeValue');
+const suspendedValue = $('suspendedValue');
+const heavyValue = $('heavyValue');
 const tabList = $('tabList');
-const heavySection = $('heavySection');
-const heavyTabList = $('heavyTabList');
-const footerStats = $('footerStats');
 
-const TOP_TAB_COUNT = 5;
-let freshDataLoaded = false;
+const TAB_LIMIT = 8;
+let currentTabs = [];
+let allTabs = [];
+let currentFilter = 'all';
+
+function getDomain(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
 
 function createTabItem(tab) {
-  const li = document.createElement('li');
-  li.className = 'tab-item';
+  const div = document.createElement('div');
+  div.className = 'tab-item';
+  if (tab.discarded) {
+    div.classList.add('tab-item--discarded');
+  }
+  if (tab.active) {
+    div.classList.add('tab-item--active');
+  }
+
+  const statusIcon = document.createElement('span');
+  statusIcon.className = 'tab-status-icon';
+  if (tab.discarded) {
+    statusIcon.innerHTML = '🌙';
+    statusIcon.title = 'Suspended';
+  } else if (tab.active) {
+    statusIcon.innerHTML = '☀️';
+    statusIcon.title = 'Active';
+  }
+  div.appendChild(statusIcon);
 
   const favicon = tab.favIconUrl
     ? Object.assign(document.createElement('img'), {
@@ -27,99 +51,123 @@ function createTabItem(tab) {
         onerror() { this.replaceWith(Object.assign(document.createElement('div'), { className: 'tab-favicon-placeholder' })); },
       })
     : Object.assign(document.createElement('div'), { className: 'tab-favicon-placeholder' });
-  li.appendChild(favicon);
+  div.appendChild(favicon);
 
   const info = document.createElement('div');
   info.className = 'tab-info';
+  
   const title = document.createElement('span');
   title.className = 'tab-title';
   title.textContent = tab.title || 'Untitled';
-  title.title = tab.title || 'Untitled'; // Hover tooltip for truncated titles
+  title.title = tab.title || 'Untitled';
   info.appendChild(title);
-  li.appendChild(info);
-
-  const mem = document.createElement('span');
-  mem.className = 'tab-memory';
-  mem.textContent = tab.memoryMB + ' MB';
-  li.appendChild(mem);
+  
+  const domain = document.createElement('span');
+  domain.className = 'tab-domain';
+  domain.textContent = getDomain(tab.url);
+  info.appendChild(domain);
+  
+  div.appendChild(info);
 
   const btn = document.createElement('button');
   btn.className = 'tab-suspend-btn';
-  btn.textContent = 'Suspend';
-  btn.setAttribute('aria-label', 'Suspend ' + (tab.title || 'tab'));
-  if (tab.active || tab.pinned || tab.audible || tab.discarded) btn.disabled = true;
-  btn.addEventListener('click', () => suspendTab(tab.id, btn));
-  li.appendChild(btn);
+  if (tab.discarded) {
+    btn.textContent = 'Restore';
+    btn.classList.add('tab-suspend-btn--discarded');
+  } else if (tab.active || tab.pinned || tab.audible) {
+    btn.disabled = true;
+    btn.textContent = 'Active';
+  } else {
+    btn.textContent = 'Suspend';
+  }
 
-  return li;
+  if (tab.memoryMB > 0 && !tab.discarded) {
+    const mem = document.createElement('span');
+    mem.className = 'tab-memory';
+    mem.textContent = tab.memoryMB + ' MB';
+    div.appendChild(mem);
+  }
+
+  if (tab.discarded) {
+    const zzz = document.createElement('span');
+    zzz.className = 'tab-zzz';
+    zzz.textContent = 'zzz';
+    div.appendChild(zzz);
+  }
+  btn.addEventListener('click', () => tab.discarded ? restoreTab(tab.id, btn) : suspendTab(tab.id, btn));
+  div.appendChild(btn);
+
+  return div;
+}
+
+function updateMemoryRing(totalMB) {
+  const maxMB = 4000;
+  const circumference = 2 * Math.PI * 42;
+  const percent = Math.min(totalMB / maxMB, 1);
+  const offset = circumference * (1 - percent);
+  
+  memoryRing.style.strokeDashoffset = offset;
+  memoryRing.classList.remove('state-warning', 'state-danger');
+  if (totalMB >= 3000) memoryRing.classList.add('state-danger');
+  else if (totalMB >= 2000) memoryRing.classList.add('state-warning');
+}
+
+function getFilteredTabs(tabs) {
+  switch (currentFilter) {
+    case 'active':
+      return tabs.filter(t => !t.discarded);
+    case 'discarded':
+      return tabs.filter(t => t.discarded);
+    default:
+      return tabs;
+  }
 }
 
 function renderAll(status) {
   if (!status?.success) return;
-  const { totalMB = 0, isEstimate, tabs = [], session: sess = {} } = status;
-
+  
+  const { totalMB = 0, isEstimate, tabs = [] } = status;
+  currentTabs = tabs;
+  
   requestAnimationFrame(() => {
-    // Estimate banner
-    if (estimateBanner) estimateBanner.hidden = !isEstimate;
-
-    // Memory bar
-    const pct = Math.min((totalMB / 4000) * 100, 100);
-    memoryBarFill.style.width = pct + '%';
-    memoryBarFill.setAttribute('aria-valuenow', totalMB);
-    memoryBarFill.className = 'memory-bar-fill' +
-      (isEstimate ? ' state-estimate' : '') +
-      (totalMB >= 2000 ? ' state-red' : totalMB >= 1000 ? ' state-yellow' : '');
-
-    if (totalMB >= 1000) {
-      memoryValue.textContent = '~' + (totalMB / 1000).toFixed(1);
-      memoryUnit.textContent = 'GB';
-    } else if (isEstimate) {
-      memoryValue.textContent = '~' + totalMB;
-      memoryUnit.textContent = 'MB';
+    const activeTabs = tabs.filter(t => !t.discarded);
+    const suspendedTabs = tabs.filter(t => t.discarded);
+    const heavyTabs = activeTabs.filter(t => t.isHeavy || t.memoryMB > 150);
+    
+    if (isEstimate || totalMB === 0) {
+      memoryValue.textContent = activeTabs.length;
+      memoryUnit.textContent = 'tabs';
     } else {
-      memoryValue.textContent = totalMB;
-      memoryUnit.textContent = 'MB';
+      if (totalMB >= 1000) {
+        memoryValue.textContent = (totalMB / 1000).toFixed(1);
+        memoryUnit.textContent = 'GB';
+      } else {
+        memoryValue.textContent = totalMB;
+        memoryUnit.textContent = 'MB';
+      }
     }
-
-    // Top 5 tabs (exclude heavy — shown separately)
-    const heavyIds = new Set();
-    const heavy = tabs.filter((t) => t.isHeavy && !t.discarded);
-    heavy.forEach((t) => heavyIds.add(t.id));
-
-    const top = tabs.filter((t) => !t.discarded && !heavyIds.has(t.id)).slice(0, TOP_TAB_COUNT);
-
+    memoryDetail.textContent = isEstimate ? `~${totalMB} MB (est)` : `${totalMB} MB`;
+    updateMemoryRing(totalMB);
+    
+    activeValue.textContent = activeTabs.length;
+    suspendedValue.textContent = suspendedTabs.length;
+    heavyValue.textContent = heavyTabs.length;
+    
+    const filteredTabs = getFilteredTabs(tabs);
+    const sortedTabs = [...filteredTabs].sort((a, b) => b.memoryMB - a.memoryMB);
+    const displayTabs = currentFilter === 'all' ? sortedTabs.slice(0, TAB_LIMIT) : sortedTabs;
+    
     tabList.replaceChildren();
-    if (top.length === 0 && heavy.length === 0) {
-      const li = document.createElement('li');
-      li.className = 'tab-item tab-item--empty';
-      li.textContent = 'No active tabs';
-      tabList.appendChild(li);
+    if (displayTabs.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'tab-item tab-item--empty';
+      empty.textContent = currentFilter === 'discarded' ? 'No suspended tabs' : (currentFilter === 'active' ? 'No active tabs' : 'No tabs');
+      tabList.appendChild(empty);
     } else {
-      for (const tab of top) tabList.appendChild(createTabItem(tab));
+      for (const tab of displayTabs) {
+        tabList.appendChild(createTabItem(tab));
+      }
     }
-
-    // Heavy tabs section
-    if (heavy.length === 0) {
-      heavySection.hidden = true;
-    } else {
-      heavySection.hidden = false;
-      heavyTabList.replaceChildren();
-      for (const tab of heavy) heavyTabList.appendChild(createTabItem(tab));
-    }
-
-    // Footer — qualify stats when in estimate mode
-    const n = sess.totalSuspended || 0;
-    const saved = sess.estimatedSavedMB || 0;
-    const peak = sess.peakMemoryMB || 0;
-
-    let footerText = `${n} tab${n !== 1 ? 's' : ''} suspended`;
-    if (saved > 0 && !isEstimate) {
-      footerText += ` · ${saved} MB saved`;
-    }
-    if (peak > 0) {
-      footerText += ` · Peak: ${peak >= 1000 ? (peak / 1000).toFixed(1) + ' GB' : peak + ' MB'}`;
-    }
-    footerStats.textContent = footerText;
   });
 }
 
@@ -132,44 +180,187 @@ async function suspendTab(tabId, btn) {
       btn.textContent = 'Done';
       setTimeout(loadFreshData, 300);
     } else {
-      resetBtn(btn, 'Failed');
+      btn.textContent = 'Failed';
+      setTimeout(() => {
+        btn.textContent = 'Suspend';
+        btn.disabled = false;
+      }, 1000);
     }
   } catch {
-    resetBtn(btn, 'Error');
+    btn.textContent = 'Error';
   }
 }
 
-function resetBtn(btn, label) {
-  btn.textContent = label;
-  setTimeout(() => { btn.textContent = 'Suspend'; btn.disabled = false; }, 1500);
+async function restoreTab(tabId, btn) {
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    const res = await chrome.runtime.sendMessage({ type: 'restoreTab', tabId });
+    if (res?.success) {
+      btn.textContent = 'Done';
+      setTimeout(loadFreshData, 300);
+    } else {
+      btn.textContent = 'Failed';
+      setTimeout(() => {
+        btn.textContent = 'Restore';
+        btn.disabled = false;
+      }, 1000);
+    }
+  } catch {
+    btn.textContent = 'Error';
+  }
 }
-
-// -- Data loading (sequential to avoid race condition) -----------------------
 
 async function loadCachedData() {
   try {
     const d = await chrome.storage.local.get('cleenPopupCache');
     if (d?.cleenPopupCache) renderAll(d.cleenPopupCache);
-  } catch { /* no cache */ }
+  } catch { }
 }
 
 async function loadFreshData() {
+  document.body.classList.add('loading');
   try {
-    const status = await chrome.runtime.sendMessage({ type: 'getStatus' });
+    const [status, tabs] = await Promise.all([
+      chrome.runtime.sendMessage({ type: 'getStatus' }),
+      chrome.runtime.sendMessage({ type: 'getAllTabs' })
+    ]);
+    allTabs = tabs || [];
     if (status?.success) {
-      freshDataLoaded = true;
       renderAll(status);
-      try { await chrome.storage.local.set({ cleenPopupCache: status }); } catch { /* noop */ }
+      try { await chrome.storage.local.set({ cleenPopupCache: status }); } catch { }
     }
   } catch (err) {
     console.error('[Cleen] Failed to load:', err);
+  } finally {
+    document.body.classList.remove('loading');
   }
 }
 
-// Sequential: cache first, then fresh (no race condition)
 async function init() {
+  setupFilterButtons();
+  setupSettingsPanel();
   await loadCachedData();
   await loadFreshData();
 }
 
+function setupFilterButtons() {
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-btn--active'));
+      btn.classList.add('filter-btn--active');
+      currentFilter = btn.dataset.filter;
+      if (currentTabs.length > 0) {
+        renderAll({ success: true, totalMB: 0, isEstimate: true, tabs: currentTabs });
+      }
+    });
+  });
+}
+
+function setupSettingsPanel() {
+  const settingsBtn = $('settingsBtn');
+  const settingsPanel = $('settingsPanel');
+  const settingsClose = $('settingsClose');
+  const thresholdSelect = $('thresholdSelect');
+  const shortcutDisplay = $('shortcutDisplay');
+
+  settingsBtn?.addEventListener('click', () => {
+    settingsPanel.classList.add('settings-panel--open');
+  });
+
+  settingsClose?.addEventListener('click', () => {
+    settingsPanel.classList.remove('settings-panel--open');
+  });
+
+  thresholdSelect?.addEventListener('change', async (e) => {
+    const value = parseInt(e.target.value, 10);
+    await chrome.storage.local.set({ suspendThreshold: value });
+  });
+
+  chrome.storage.local.get('suspendThreshold', (d) => {
+    if (d?.suspendThreshold !== undefined) {
+      thresholdSelect.value = d.suspendThreshold;
+    }
+  });
+
+  let isRecordingShortcut = false;
+  shortcutDisplay?.addEventListener('click', () => {
+    isRecordingShortcut = true;
+    shortcutDisplay.textContent = 'Press keys...';
+    shortcutDisplay.classList.add('settings-shortcut--recording');
+  });
+
+  document.addEventListener('keydown', async (e) => {
+    if (!isRecordingShortcut) return;
+    
+    e.preventDefault();
+    const keys = [];
+    if (e.ctrlKey) keys.push('Ctrl');
+    if (e.shiftKey) keys.push('Shift');
+    if (e.altKey) keys.push('Alt');
+    if (e.metaKey) keys.push('Command');
+    if (e.key !== 'Control' && e.key !== 'Shift' && e.key !== 'Alt' && e.key !== 'Meta') {
+      keys.push(e.key.toUpperCase());
+    }
+    
+    if (keys.length > 1) {
+      const shortcut = keys.join('+');
+      shortcutDisplay.textContent = shortcut;
+      shortcutDisplay.classList.remove('settings-shortcut--recording');
+      isRecordingShortcut = false;
+      
+      await chrome.storage.local.set({ customShortcut: shortcut });
+    }
+  });
+}
+
 init();
+
+const suspendAllBtn = $('suspendAllBtn');
+const suspendLeftBtn = $('suspendLeftBtn');
+const suspendRightBtn = $('suspendRightBtn');
+const suspendOthersBtn = $('suspendOthersBtn');
+
+async function suspendMultiple(tabIds) {
+  for (const tabId of tabIds) {
+    try {
+      await chrome.runtime.sendMessage({ type: 'suspendTab', tabId });
+    } catch { }
+  }
+  setTimeout(loadFreshData, 500);
+}
+
+function getActiveTabId() {
+  const active = currentTabs.find(t => t.active);
+  return active?.id || (allTabs.length > 0 ? allTabs[0].id : null);
+}
+
+suspendAllBtn?.addEventListener('click', async () => {
+  const ids = currentTabs.filter(t => !t.discarded && !t.active).map(t => t.id);
+  await suspendMultiple(ids);
+});
+
+suspendLeftBtn?.addEventListener('click', async () => {
+  const currentId = getActiveTabId();
+  if (!currentId || allTabs.length === 0) return;
+  const idx = allTabs.findIndex(t => t.id === currentId);
+  if (idx <= 0) return;
+  const ids = allTabs.slice(0, idx).filter(t => !t.discarded && !t.active).map(t => t.id);
+  await suspendMultiple(ids);
+});
+
+suspendRightBtn?.addEventListener('click', async () => {
+  const currentId = getActiveTabId();
+  if (!currentId || allTabs.length === 0) return;
+  const idx = allTabs.findIndex(t => t.id === currentId);
+  if (idx < 0 || idx >= allTabs.length - 1) return;
+  const ids = allTabs.slice(idx + 1).filter(t => !t.discarded && !t.active).map(t => t.id);
+  await suspendMultiple(ids);
+});
+
+suspendOthersBtn?.addEventListener('click', async () => {
+  const currentId = getActiveTabId();
+  if (!currentId) return;
+  const ids = allTabs.filter(t => t.id !== currentId && !t.discarded && !t.active).map(t => t.id);
+  await suspendMultiple(ids);
+});

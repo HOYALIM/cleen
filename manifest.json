@@ -4,13 +4,16 @@
   "version": "0.1.0",
   "description": "Keep Chrome's memory usage under control. Automatically suspends inactive tabs and shows a clean memory dashboard.",
   "permissions": [
-    "tabs",
-    "processes",
     "storage",
-    "alarms"
+    "alarms",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://*/*"
   ],
   "background": {
-    "service_worker": "background/service-worker.js"
+    "service_worker": "background/service-worker.js",
+    "type": "module"
   },
   "action": {
     "default_popup": "popup/popup.html",

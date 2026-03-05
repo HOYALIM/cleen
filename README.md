@@ -20,10 +20,21 @@
 - **Auto-suspend** — Tabs inactive for 30+ minutes are automatically discarded, freeing RAM instantly
 - **Memory dashboard** — Click the extension icon to see which tabs use the most memory
 - **Heavy tab detection** — YouTube, Claude, ChatGPT, and other known heavy sites are flagged in the dashboard
+- **Custom exclusions** — Set which sites should never be auto-suspended
 
-## Note on memory measurement
+## Permissions
 
-Cleen attempts to use Chrome's `processes` API for accurate per-tab memory data. This API is only available for enterprise-installed extensions or in developer mode. When unavailable, Cleen shows estimated values (marked with "est." in the UI). Memory numbers shown as estimates are rough approximations.
+Cleen requires the following permissions:
+
+| Permission | Why it's needed |
+|------------|-----------------|
+| `tabs` | To query open tabs and detect which sites are active |
+| `processes` | To get accurate per-tab memory usage (when available) |
+| `storage` | To save your settings and session statistics locally |
+| `alarms` | To run periodic memory checks in the background |
+| `scripting` | To read memory usage from web pages via `performance.memory` API |
+
+**Note:** The `processes` API is only available for enterprise-installed extensions or in developer mode. When unavailable, Cleen uses `performance.memory` from each page as an alternative, with estimates as fallback.
 
 ## Privacy
 

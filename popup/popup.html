@@ -2,53 +2,127 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=320">
+  <meta name="viewport" content="width=360">
   <link rel="stylesheet" href="popup.css">
   <title>Cleen</title>
 </head>
 <body>
   <header class="header">
     <span class="header-title">Cleen</span>
-    <button class="header-settings" disabled aria-label="Settings (coming soon)" title="Settings (coming soon)">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M6.5 1L6.1 2.6C5.7 2.8 5.3 3 5 3.2L3.4 2.7L1.9 5.3L3.2 6.3C3.2 6.5 3.2 6.7 3.2 7C3.2 7.3 3.2 7.5 3.2 7.7L1.9 8.7L3.4 11.3L5 10.8C5.3 11 5.7 11.2 6.1 11.4L6.5 13H9.5L9.9 11.4C10.3 11.2 10.7 11 11 10.8L12.6 11.3L14.1 8.7L12.8 7.7C12.8 7.5 12.8 7.3 12.8 7C12.8 6.7 12.8 6.5 12.8 6.3L14.1 5.3L12.6 2.7L11 3.2C10.7 3 10.3 2.8 9.9 2.6L9.5 1H6.5ZM8 5C9.1 5 10 5.9 10 7C10 8.1 9.1 9 8 9C6.9 9 6 8.1 6 7C6 5.9 6.9 5 8 5Z" fill="#999"/>
+    <button class="settings-btn" id="settingsBtn" title="Settings">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M9 11.25a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M14.55 11.25a1.125 1.125 0 00.195 1.24l.04.039a1.516 1.516 0 11-2.144 2.144l-.039-.04a1.125 1.125 0 00-1.24-.195 1.125 1.125 0 00-.675 1.03v.116a1.516 1.516 0 11-3.032 0v-.067a1.125 1.125 0 00-.724-1.058 1.125 1.125 0 00-1.239.195l-.04.04a1.516 1.516 0 11-2.143-2.145l.039-.04a1.125 1.125 0 00.195-1.24 1.125 1.125 0 00-1.03-.675h-.116a1.516 1.516 0 110-3.032h.067a1.125 1.125 0 001.058-.724 1.125 1.125 0 00-.195-1.24l-.04-.039a1.516 1.516 0 112.144-2.144l.039.04a1.125 1.125 0 001.24.195h.05a1.125 1.125 0 00.675-1.03v-.116a1.516 1.516 0 113.032 0v.067a1.125 1.125 0 00.724 1.058 1.125 1.125 0 001.24-.195l.04-.04a1.516 1.516 0 112.144 2.144l-.04.039a1.125 1.125 0 00-.194 1.24v.05a1.125 1.125 0 001.03.675h.116a1.516 1.516 0 110 3.032h-.067a1.125 1.125 0 00-1.058.724z" stroke="currentColor" stroke-width="1.5"/>
       </svg>
     </button>
   </header>
 
-  <!-- Estimate banner — shown when chrome.processes unavailable -->
-  <div class="estimate-banner" id="estimateBanner" hidden>
-    Memory values are approximate
+  <div class="settings-panel" id="settingsPanel">
+    <div class="settings-header">
+      <span class="settings-title">Settings</span>
+      <button class="settings-close" id="settingsClose">&times;</button>
+    </div>
+    <div class="settings-content">
+      <div class="settings-section">
+        <div class="settings-row">
+          <span class="settings-label">Auto-suspend threshold</span>
+          <select class="settings-select" id="thresholdSelect">
+            <option value="600000">10 min</option>
+            <option value="1800000">30 min</option>
+            <option value="3600000">1 hour</option>
+            <option value="7200000">2 hours</option>
+            <option value="0">Disabled</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-row">
+          <span class="settings-label">Keyboard shortcut</span>
+          <span class="settings-shortcut" id="shortcutDisplay">Click to set</span>
+        </div>
+        <div class="settings-hint">Click and press keys to set shortcut</div>
+      </div>
+    </div>
   </div>
 
-  <section class="memory-section" role="status" aria-label="Total memory usage">
-    <div class="memory-bar-track">
-      <div class="memory-bar-fill" id="memoryBarFill" role="progressbar" aria-valuemin="0" aria-valuemax="4000" aria-valuenow="0"></div>
+  <div class="dashboard">
+    <div class="card card--main">
+      <div class="memory-ring">
+        <svg viewBox="0 0 100 100">
+          <circle class="ring-bg" cx="50" cy="50" r="42"/>
+          <circle class="ring-fill" id="memoryRing" cx="50" cy="50" r="42"/>
+        </svg>
+        <div class="memory-center">
+          <span class="memory-value" id="memoryValue">0</span>
+          <span class="memory-unit" id="memoryUnit">MB</span>
+        </div>
+      </div>
+      <div class="memory-info">
+        <div class="memory-label">Total Memory</div>
+        <div class="memory-detail" id="memoryDetail">0 tabs</div>
+      </div>
     </div>
-    <div class="memory-label">
-      <span id="memoryValue">0</span>
-      <span class="memory-unit" id="memoryUnit">MB</span>
+
+    <div class="stats-row">
+      <div class="card card--stat">
+        <div class="stat-icon stat-icon--active">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="2" y="3" width="12" height="9" rx="1" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M5 3V2C5 1 6 0 8 0S11 1 11 2V3" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value" id="activeValue">0</span>
+          <span class="stat-label">Active</span>
+        </div>
+      </div>
+      <div class="card card--stat">
+        <div class="stat-icon stat-icon--suspended">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="3" y="7" width="10" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M6 7V5C6 3.34 7.34 2 9 2C10.66 2 12 3.34 12 5V7" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value" id="suspendedValue">0</span>
+          <span class="stat-label">Suspended</span>
+        </div>
+      </div>
+      <div class="card card--stat">
+        <div class="stat-icon stat-icon--heavy">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 2L10 6L14 6.5L11 10L12 14L8 11.5L4 14L5 10L2 6.5L6 6L8 2Z" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value" id="heavyValue">0</span>
+          <span class="stat-label">Heavy</span>
+        </div>
+      </div>
     </div>
-  </section>
 
-  <section class="tabs-section">
-    <h2 class="section-title">Top Memory Usage</h2>
-    <ul class="tab-list" id="tabList" aria-label="Top memory-consuming tabs">
-      <li class="tab-item tab-item--empty">Scanning memory...</li>
-    </ul>
-  </section>
-
-  <section class="heavy-section" id="heavySection" hidden>
-    <h2 class="section-title">
-      <span class="heavy-indicator" aria-hidden="true"></span>
-      Heavy Tabs
-    </h2>
-    <ul class="tab-list" id="heavyTabList" aria-label="Heavy tabs"></ul>
-  </section>
-
-  <footer class="footer" aria-live="polite">
-    <span id="footerStats">0 tabs suspended</span>
-  </footer>
+    <div class="card card--tabs">
+      <div class="card-header">
+        <div class="card-header-left">
+          <span class="card-title">Tabs</span>
+          <div class="filter-tabs">
+            <button class="filter-btn filter-btn--active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="active">☀️ Active</button>
+            <button class="filter-btn" data-filter="discarded">🌙 Suspended</button>
+          </div>
+        </div>
+        <div class="tab-actions">
+          <button class="tab-action-btn" id="suspendLeftBtn">←L</button>
+          <button class="tab-action-btn" id="suspendRightBtn">R→</button>
+          <button class="tab-action-btn" id="suspendOthersBtn">Others</button>
+          <button class="tab-action-btn tab-action-btn--primary" id="suspendAllBtn">All</button>
+        </div>
+      </div>
+      <div class="tab-list" id="tabList">
+        <div class="tab-item tab-item--empty">No tabs</div>
+      </div>
+    </div>
+  </div>
 
   <script src="popup.js"></script>
 </body>

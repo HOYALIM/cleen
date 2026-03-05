@@ -16,11 +16,26 @@ const HEAVY_SITES = [
   'notion.so', 'figma.com',
 ];
 
+let siteExclusions = new Set();
+
+async function loadExclusions() {
+  const saved = await storageGet('siteExclusions');
+  siteExclusions = new Set(saved || []);
+}
+
 function isHeavySite(url) {
   if (!url || typeof url !== 'string') return false;
   try {
     const h = new URL(url).hostname;
     return HEAVY_SITES.some((s) => h === s || h.endsWith('.' + s));
+  } catch { return false; }
+}
+
+function isExcludedSite(url) {
+  if (!url || typeof url !== 'string' || siteExclusions.size === 0) return false;
+  try {
+    const h = new URL(url).hostname;
+    return siteExclusions.has(h) || siteExclusions.has(h.replace(/^www\./, ''));
   } catch { return false; }
 }
 
@@ -30,13 +45,24 @@ async function storageGet(key) {
   try {
     const d = await chrome.storage.local.get(key);
     if (d[key] !== undefined) return d[key];
-  } catch { /* noop */ }
+  } catch (err) {
+    console.warn('[Cleen] Storage read failed:', key, err.message);
+  }
   return undefined;
 }
 
 async function storageSet(key, value) {
-  try { await chrome.storage.local.set({ [key]: value }); }
-  catch (err) { console.warn('[Cleen] Storage write failed:', key, err); }
+  try { 
+    await chrome.storage.local.set({ [key]: value }); 
+  } catch (err) { 
+    console.warn('[Cleen] Storage write failed:', key, err.message);
+    if (err.message?.includes('QUOTA_BYTES')) {
+      console.warn('[Cleen] Storage quota exceeded, attempting cleanup');
+      try {
+        await chrome.storage.local.remove(['cleenTabTimestamps']);
+      } catch { /* best effort */ }
+    }
+  }
 }
 
 // -- Tab Activity Tracker (persisted to survive SW restarts) -----------------
@@ -130,16 +156,37 @@ async function pollProcesses() {
 }
 
 async function pollFallback() {
+  let gotActualMemory = false;
   try {
     const tabs = await chrome.tabs.query({});
     const map = new Map();
     let total = 0;
+    
     for (const tab of tabs) {
-      const mb = tab.discarded ? 5 : (isHeavySite(tab.url) ? 200 : 100);
+      let mb = tab.discarded ? 5 : (isHeavySite(tab.url) ? 200 : 100);
+      
+      if (!tab.discarded && tab.id && !tab.url.startsWith('chrome://')) {
+        try {
+          const results = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => {
+              if (performance.memory) {
+                return Math.round(performance.memory.usedJSHeapSize / 1048576);
+              }
+              return null;
+            },
+          });
+          if (results?.[0]?.result && results[0].result > 0) {
+            mb = results[0].result;
+            gotActualMemory = true;
+          }
+        } catch { /* script injection failed - use estimate */ }
+      }
+      
       map.set(tab.id, mb);
       total += mb;
     }
-    return { map, totalMB: total, isEstimate: true };
+    return { map, totalMB: total, isEstimate: !gotActualMemory };
   } catch { return { map: new Map(), totalMB: 0, isEstimate: true }; }
 }
 
@@ -156,13 +203,23 @@ async function getSuspendThreshold() {
   return (await storageGet('suspendThreshold')) ?? DEFAULT_THRESHOLD_MS;
 }
 
+async function isAutoDiscardEnabled() {
+  const enabled = await storageGet('autoDiscardEnabled');
+  return enabled !== false;
+}
+
 async function runSuspendCheck() {
   try {
-    // Reload state from storage in case SW was terminated and restarted
+    if (!(await isAutoDiscardEnabled())) return;
+    
     await loadTabTimestamps();
     await loadSession();
+    await loadExclusions();
 
     const threshold = await getSuspendThreshold();
+    
+    if (threshold === 0) return;
+    
     const now = Date.now();
     const tabs = await chrome.tabs.query({});
     const { map: memMap } = await getMemorySnapshot();
@@ -171,6 +228,7 @@ async function runSuspendCheck() {
       if (tab.active || tab.pinned || tab.audible || tab.discarded) continue;
       if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) continue;
       if (tab.incognito) continue;
+      if (isExcludedSite(tab.url)) continue;
 
       const last = tabLastAccessed.get(tab.id);
       if (!last) { touchTab(tab.id); continue; }
@@ -180,9 +238,15 @@ async function runSuspendCheck() {
         await chrome.tabs.discard(tab.id);
         session.totalSuspended += 1;
         session.estimatedSavedMB += memMap.get(tab.id) || 0;
-      } catch { /* some tabs can't be discarded */ }
+      } catch (err) {
+        // Tab may have been closed or cannot be discarded - log and continue
+        if (!err.message?.includes('No tab with id')) {
+          console.debug('[Cleen] Could not discard tab:', tab.id, err.message);
+        }
+      }
     }
 
+    memCache.time = 0;
     const { totalMB } = await getMemorySnapshot();
     if (totalMB > session.peakMemoryMB) session.peakMemoryMB = totalMB;
     await persistSession();
@@ -201,6 +265,7 @@ async function initialize() {
   try {
     await loadTabTimestamps();
     await loadSession();
+    await loadExclusions();
 
     if ((await storageGet('suspendThreshold')) === undefined) {
       await storageSet('suspendThreshold', DEFAULT_THRESHOLD_MS);
@@ -239,8 +304,19 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     handleGetStatus().then(sendResponse).catch(() => sendResponse({ success: false }));
     return true;
   }
+  if (msg.type === 'getAllTabs') {
+    chrome.tabs.query({}).then(tabs => sendResponse(tabs)).catch(() => sendResponse([]));
+    return true;
+  }
   if (msg.type === 'suspendTab') {
     handleSuspendTab(msg.tabId).then(sendResponse).catch(() => sendResponse({ success: false }));
+    return true;
+  }
+  if (msg.type === 'clearStats') {
+    session.totalSuspended = 0;
+    session.estimatedSavedMB = 0;
+    session.peakMemoryMB = 0;
+    persistSession().then(() => sendResponse({ success: true })).catch(() => sendResponse({ success: false }));
     return true;
   }
   return false;
@@ -271,13 +347,29 @@ async function handleGetStatus() {
 
 async function handleSuspendTab(tabId) {
   try {
+    const tab = await chrome.tabs.get(tabId);
+    if (!tab) {
+      return { success: false, error: 'Tab not found' };
+    }
+    if (tab.discarded) {
+      return { success: false, error: 'Tab already discarded' };
+    }
+    if (tab.active) {
+      return { success: false, error: 'Cannot discard active tab' };
+    }
+    
     const { map } = await getMemorySnapshot();
     await chrome.tabs.discard(tabId);
     session.totalSuspended += 1;
     session.estimatedSavedMB += map.get(tabId) || 0;
     await persistSession();
+    memCache.time = 0;
     return { success: true };
   } catch (err) {
-    return { success: false, error: err.message };
+    const msg = err.message || String(err);
+    if (msg.includes('cannot be discarded') || msg.includes('No tab with id')) {
+      return { success: false, error: 'Tab cannot be discarded' };
+    }
+    return { success: false, error: msg };
   }
 }
