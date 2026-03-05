@@ -1,0 +1,190 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 320px;
+  max-height: 500px;
+  overflow-y: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  font-size: 13px;
+  color: #1a1a1a;
+  background: #fff;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.header-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.header-settings {
+  background: none;
+  border: none;
+  cursor: default;
+  padding: 4px;
+  opacity: 0.4;
+  display: flex;
+  align-items: center;
+}
+
+/* Estimate banner — honest disclosure */
+.estimate-banner {
+  padding: 6px 16px;
+  font-size: 11px;
+  color: #8a6d3b;
+  background: #fcf8e3;
+  border-bottom: 1px solid #f0e5c0;
+  text-align: center;
+}
+
+/* Memory bar */
+.memory-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.memory-bar-track {
+  width: 100%;
+  height: 6px;
+  background: #f0f0f0;
+  overflow: hidden;
+}
+
+.memory-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: #34c759;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+.memory-bar-fill.state-yellow { background: #ff9500; }
+.memory-bar-fill.state-red { background: #ff3b30; }
+.memory-bar-fill.state-estimate { opacity: 0.6; }
+
+.memory-label {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin-top: 8px;
+}
+
+#memoryValue {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.memory-unit {
+  font-size: 12px;
+  color: #999;
+  font-weight: 500;
+}
+
+/* Section titles */
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #999;
+  padding: 10px 16px 6px;
+}
+
+/* Tab list */
+.tab-list { list-style: none; }
+
+.tab-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #f8f8f8;
+}
+.tab-item:last-child { border-bottom: none; }
+
+.tab-item--empty {
+  color: #999;
+  font-size: 12px;
+  justify-content: center;
+  padding: 16px;
+}
+
+.tab-favicon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.tab-favicon-placeholder {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  background: #e0e0e0;
+}
+
+.tab-info { flex: 1; min-width: 0; }
+
+.tab-title {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.tab-memory {
+  font-size: 11px;
+  color: #999;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.tab-suspend-btn {
+  font-size: 11px;
+  font-weight: 500;
+  color: #007aff;
+  background: none;
+  border: 1px solid #007aff;
+  padding: 5px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.tab-suspend-btn:hover { background: #007aff; color: #fff; }
+.tab-suspend-btn:disabled { opacity: 0.3; cursor: default; pointer-events: none; }
+
+/* Heavy section */
+.heavy-section { border-top: 1px solid #f0f0f0; }
+
+.heavy-indicator {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #ff9500;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+/* Footer */
+.footer {
+  padding: 10px 16px;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+
+#footerStats { font-size: 11px; color: #999; }

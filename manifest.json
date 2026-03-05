@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Cleen",
+  "version": "0.1.0",
+  "description": "Keep Chrome's memory usage under control. Automatically suspends inactive tabs and shows a clean memory dashboard.",
+  "permissions": [
+    "tabs",
+    "processes",
+    "storage",
+    "alarms"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "assets/icon-16.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  },
+  "minimum_chrome_version": "116"
+}
