@@ -129,7 +129,6 @@ let memCache = { map: new Map(), totalMB: 0, time: 0, isEstimate: false };
 
 async function pollProcesses() {
   if (!chrome.processes?.getProcessInfo) {
-    console.log('[Cleen] processes API not available');
     return null;
   }
   try {
@@ -140,35 +139,43 @@ async function pollProcesses() {
           else resolve(data);
         });
       }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
     ]);
 
-    if (!info) {
-      console.log('[Cleen] No process info returned');
-      return null;
-    }
+    if (!info) return null;
 
     const map = new Map();
     let total = 0;
-    console.log('[Cleen] Process count:', Object.keys(info).length);
+    const processTypes = {};
     
     for (const [procId, proc] of Object.entries(info)) {
-      const mb = Math.round((proc.privateMemory || 0) / 1_048_576);
+      const type = proc.type || 'unknown';
+      processTypes[type] = (processTypes[type] || 0) + 1;
+      
+      let mb = 0;
+      if (proc.privateMemory) {
+        mb = Math.round(proc.privateMemory / 1_048_576);
+      } else if (proc.jsHeapSizeUsed) {
+        mb = Math.round(proc.jsHeapSizeUsed / 1_048_576);
+      } else if (proc.memory) {
+        mb = Math.round(proc.memory / 1_048_576);
+      }
+      
       total += mb;
-      console.log('[Cleen] Process', procId, 'type:', proc.type, 'memory:', mb, 'MB');
-      if (proc.tasks) {
+      
+      if (proc.tasks && proc.tasks.length > 0) {
+        const memPerTask = proc.tasks.length > 1 ? Math.floor(mb / proc.tasks.length) : mb;
         for (const t of proc.tasks) {
           if (t.tabId > 0) {
             const prev = map.get(t.tabId) || 0;
-            map.set(t.tabId, prev + mb);
+            map.set(t.tabId, prev + memPerTask);
           }
         }
       }
     }
-    console.log('[Cleen] Total memory:', total, 'MB');
-    return { map, totalMB: total, isEstimate: false };
+    
+    return { map, totalMB: total, isEstimate: false, processTypes };
   } catch (err) {
-    console.log('[Cleen] pollProcesses error:', err.message);
     return null;
   }
 }

@@ -246,9 +246,9 @@ async function loadFreshData() {
 
 async function init() {
   setupFilterButtons();
-  setupSettingsPanel();
   await loadCachedData();
   await loadFreshData();
+  setInterval(loadFreshData, 5000);
 }
 
 function setupFilterButtons() {
@@ -261,32 +261,6 @@ function setupFilterButtons() {
         renderAll({ success: true, totalMB: 0, isEstimate: true, tabs: currentTabs });
       }
     });
-  });
-}
-
-function setupSettingsPanel() {
-  const settingsBtn = $('settingsBtn');
-  const settingsPanel = $('settingsPanel');
-  const settingsClose = $('settingsClose');
-  const thresholdSelect = $('thresholdSelect');
-
-  settingsBtn?.addEventListener('click', () => {
-    settingsPanel.classList.add('settings-panel--open');
-  });
-
-  settingsClose?.addEventListener('click', () => {
-    settingsPanel.classList.remove('settings-panel--open');
-  });
-
-  thresholdSelect?.addEventListener('change', async (e) => {
-    const value = parseInt(e.target.value, 10);
-    await chrome.storage.local.set({ suspendThreshold: value });
-  });
-
-  chrome.storage.local.get('suspendThreshold', (d) => {
-    if (d?.suspendThreshold !== undefined) {
-      thresholdSelect.value = d.suspendThreshold;
-    }
   });
 }
 
