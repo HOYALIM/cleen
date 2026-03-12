@@ -214,6 +214,44 @@ h1 {
   line-height: 1.5;
 }
 
+.install-guide {
+  margin-top: 46px;
+}
+
+.install-shell {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px;
+}
+
+.install-shell h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.install-shell ol {
+  margin: 18px 0 0;
+  padding-left: 22px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.install-shell li + li {
+  margin-top: 8px;
+}
+
+.install-shell a {
+  color: var(--accent-2);
+}
+
+.install-shell code {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.95em;
+  color: #d6dbeb;
+}
+
 .mini-spec {
   margin-top: 20px;
   background: var(--bg-soft);
