@@ -8,12 +8,15 @@
 
 > _Coming soon_
 
-## Install from source
+## Install From GitHub ZIP
 
-1. Clone or download this repository
-2. Open `chrome://extensions` in Chrome
-3. Enable **Developer mode** (top right)
-4. Click **Load unpacked** and select the `cleen/` folder
+1. Download the latest source ZIP from GitHub:
+   - <https://github.com/HOYALIM/cleen/archive/refs/heads/main.zip>
+2. Unzip the archive.
+3. Open `chrome://extensions` in Chrome.
+4. Enable **Developer mode** (top right).
+5. Click **Load unpacked**.
+6. Select the unzipped `cleen-main` folder.
 
 ## How it works
 
