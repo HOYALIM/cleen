@@ -18,6 +18,15 @@
 5. Click **Load unpacked**.
 6. Select the unzipped `cleen-main` folder.
 
+## Package For Chrome Web Store
+
+```bash
+bash scripts/package-webstore.sh
+```
+
+Generated zip:
+- `dist/cleen-0.1.0.zip`
+
 ## How it works
 
 - **Auto-suspend** — Tabs inactive for 30+ minutes are automatically discarded, freeing RAM instantly
@@ -31,17 +40,19 @@ Cleen requires the following permissions:
 
 | Permission | Why it's needed |
 |------------|-----------------|
-| `tabs` | To query open tabs and detect which sites are active |
-| `processes` | To get accurate per-tab memory usage (when available) |
 | `storage` | To save your settings and session statistics locally |
 | `alarms` | To run periodic memory checks in the background |
 | `scripting` | To read memory usage from web pages via `performance.memory` API |
+| `host_permissions (*://*/*)` | To run the in-page memory check on tabs the user already has open |
 
-**Note:** The `processes` API is only available for enterprise-installed extensions or in developer mode. When unavailable, Cleen uses `performance.memory` from each page as an alternative, with estimates as fallback.
+**Note:** Memory usage can be estimated in some environments. Cleen does not send tab or memory data to external servers.
 
 ## Privacy
 
 Cleen stores data locally only. No data ever leaves your browser. No accounts, no analytics, no network requests.
+
+Privacy policy:
+- [PRIVACY_POLICY.md](PRIVACY_POLICY.md)
 
 ## License
 

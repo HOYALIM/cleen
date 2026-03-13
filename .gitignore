@@ -2,4 +2,5 @@
 *.crx
 *.pem
 .vercel/
+dist/
 .vercel
